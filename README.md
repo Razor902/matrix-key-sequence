@@ -4,7 +4,7 @@ The telecommunication cipher of the future — built together by Curtis Ray Dyes
 
 Communication for loved ones, near and far. Fast and reliable.
 
-## The nine layers
+## The ten layers
 
 It begins at the plugboard, because that's where the memory lies.
 
@@ -16,7 +16,8 @@ It begins at the plugboard, because that's where the memory lies.
 6. **Atbash** — the mirror alphabet.
 7. **Reflector** — Enigma Umkehrwalze: fixed involution.
 8. **Reverse** — the full turn-around.
-9. **Flash** — the code between characters: the hidden message rides in zero-width flashes in the gaps, where nobody looks.
+9. **Cross** — the cross pattern: the message laid on a cross, its four arms reordered under key `BOOGIEMAN`. The heart stays.
+10. **Flash** — the code between characters: the hidden message rides in zero-width flashes in the gaps, where nobody looks.
 
 Every layer is invertible. `encrypt()` then `decrypt()` returns the plaintext and the hidden message exactly.
 

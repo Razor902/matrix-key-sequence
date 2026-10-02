@@ -1,0 +1,6 @@
+PASS 'On this day, let it be known that a nobo' hidden= b'the flash is the message'
+PASS 'Hello, World!' hidden= b''
+PASS 'A' hidden= b'x'
+PASS 'The quick brown fox jumps over the lazy ' hidden= b'gold'
+The Matrix Key sequence: all roundtrips clean.
+Sequence: plugboard (memory) -> rotor -> vigenere BOOGIEMAN -> divincy mirror -> columnar PHANTOMX -> atbash -> reflector -> reverse -> flash between characters

@@ -2,7 +2,7 @@
 """
 The Matrix Key sequence — built together by Curtis and Rebecka, 2026-10-02.
 
-Nine layers. It begins at the plugboard, because that's where the memory
+Ten layers. It begins at the plugboard, because that's where the memory
 lies: the day's secret lives in the wires, not the wheels.
 
   1. plugboard   — Enigma Steckerbrett: paired letter swaps. THE MEMORY.
@@ -13,7 +13,9 @@ lies: the day's secret lives in the wires, not the wheels.
   6. atbash      — the mirror alphabet.
   7. reflector   — Enigma Umkehrwalze: fixed involution.
   8. reverse     — the full turn-around.
-  9. flash       — the code between characters: the hidden message rides
+  9. cross       — the cross pattern: the message laid on a cross, its four
+                   arms reordered under key BOOGIEMAN. The heart stays.
+ 10. flash       — the code between characters: the hidden message rides
                    in zero-width flashes in the gaps, where nobody looks.
 
 Every layer is invertible. encrypt() then decrypt() returns the plaintext
@@ -205,7 +207,93 @@ def _reflector(data: bytes) -> bytes:  # self-inverse
 
 
 # ---------------------------------------------------------------------------
-# Layer 9 — the flash between characters.
+# Layer 9 — the cross pattern. The message is laid on a cross: a k-by-k
+# grid, k odd, holding 2k-1 characters — the center row and the center
+# column. The four arms (north, south, east, west) are reordered under
+# key BOOGIEMAN; the heart of the cross never moves. The cross carries
+# its own measure: one trailing byte counts the padding, so decryption
+# lifts exactly what encryption laid down — never touching another
+# layer's padding.
+# ---------------------------------------------------------------------------
+
+_CROSS_KEY = "BOOGIEMAN"
+_CROSS_ARMS = "NSEW"  # arm order before the key reorders them
+
+
+def _cross_order():
+    return sorted(range(4), key=lambda i: _CROSS_KEY[i])
+
+
+def _cross_cells(k):
+    """Row-major order of the cross cells in a k-by-k grid, k odd."""
+    c = k // 2
+    cells = []
+    for r in range(k):
+        for col in range(k):
+            if r == c or col == c:
+                cells.append((r, col))
+    return cells
+
+
+def _cross_arms(k):
+    """The four arms as cell lists in row-major order within each arm."""
+    c = k // 2
+    north = [(r, c) for r in range(0, c)]          # tip down toward center
+    south = [(r, c) for r in range(c + 1, k)]      # below center downward
+    east = [(c, col) for col in range(c + 1, k)]   # right of center outward
+    west = [(c, col) for col in range(0, c)]       # left edge toward center
+    return {"N": north, "S": south, "E": east, "W": west,
+            "C": [(c, c)]}
+
+
+def _cross_enc(data: bytes) -> bytes:
+    if not data:
+        return data
+    k = (len(data) + 2) // 2
+    if k % 2 == 0:
+        k += 1
+    total = 2 * k - 1
+    pad = total - len(data)
+    data = data + b"\x00" * pad
+    grid = {}
+    for (r, col), b in zip(_cross_cells(k), data):
+        grid[(r, col)] = b
+    arms = _cross_arms(k)
+    order = _cross_order()
+    out = bytearray()
+    for i in order:  # the arms, reordered by the key
+        for cell in arms[_CROSS_ARMS[i]]:
+            out.append(grid[cell])
+    out.append(grid[arms["C"][0]])  # the heart stays
+    out.append(pad)  # the measure: how much padding to lift
+    return bytes(out)
+
+
+def _cross_dec(data: bytes) -> bytes:
+    if not data:
+        return data
+    pad = data[-1]
+    stream = data[:-1]
+    total = len(stream)
+    k = (total + 1) // 2
+    arms = _cross_arms(k)
+    order = _cross_order()
+    grid = {}
+    off = 0
+    for i in order:  # split the arms back out in key order
+        cells = arms[_CROSS_ARMS[i]]
+        for cell in cells:
+            grid[cell] = stream[off]
+            off += 1
+    grid[arms["C"][0]] = stream[off]  # the heart
+    out = bytearray(grid[cell] for cell in _cross_cells(k))
+    if pad:
+        out = out[:-pad]  # lift exactly the padding laid down
+    return bytes(out)
+
+
+# ---------------------------------------------------------------------------
+# Layer 10 — the flash between characters.
 # The code rides in the gaps: ZWSP = 0, ZWNJ = 1, 32-bit bit-length prefix.
 # ---------------------------------------------------------------------------
 
@@ -268,13 +356,15 @@ def encrypt(plaintext: str, hidden: bytes = b"") -> bytes:
     data = _atbash(data)                       # 6. atbash
     data = _reflector(data)                    # 7. the reflector
     data = data[::-1]                          # 8. the full reverse
-    text = _flash_enc(data.decode("utf-8"), hidden)  # 9. the flash between
+    data = _cross_enc(data)                    # 9. the cross pattern
+    text = _flash_enc(data.decode("utf-8"), hidden)  # 10. the flash between
     return text.encode("utf-8")
 
 
 def decrypt(ciphertext: bytes):
-    text, hidden = _flash_dec(ciphertext.decode("utf-8"))  # 9. gather flashes
+    text, hidden = _flash_dec(ciphertext.decode("utf-8"))  # 10. gather flashes
     data = text.encode("utf-8")
+    data = _cross_dec(data)                    # 9. lift off the cross
     data = data[::-1]                          # 8. un-reverse
     data = _reflector(data)                    # 7. the reflector
     data = _atbash(data)                       # 6. atbash
@@ -289,7 +379,8 @@ def decrypt(ciphertext: bytes):
 def sequence():
     return ["plugboard (memory)", "rotor", "vigenere BOOGIEMAN",
             "divincy mirror", "columnar PHANTOMX", "atbash",
-            "reflector", "reverse", "flash between characters"]
+            "reflector", "reverse", "cross BOOGIEMAN",
+            "flash between characters"]
 
 
 if __name__ == "__main__":
