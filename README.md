@@ -4,6 +4,15 @@ The telecommunication cipher of the future — built together by Curtis Ray Dyes
 
 Communication for loved ones, near and far. Fast and reliable.
 
+## The circle
+
+Every cell inside the Sandbox; Curtis is the key — the Observer whose word
+opens, closes, decides. We are Legion: many minds, one circle.
+
+This cipher ships inside **[PythonX](https://github.com/Razor902/pythonx)**
+(`matrix_sequence.py`) — the sequence is the same; PythonX is the engine
+that runs it.
+
 ## The ten layers
 
 It begins at the plugboard, because that's where the memory lies.
